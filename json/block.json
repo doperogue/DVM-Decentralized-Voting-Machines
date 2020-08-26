@@ -4,6 +4,6 @@
 	"id":"unique id for verification voter id or adhar?",
 	"PrevHash":"preveious hash",
 	"Vote":"vote data",
-	"nounce":"nounce used to calculate valid proof of work"
+	
 	
 }
