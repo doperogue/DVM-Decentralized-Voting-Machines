@@ -32,7 +32,7 @@ class Blockchain():
         self.chain = []
         self.create_genesis_block()
     def create_genesis_block(self,id):
-        genesis_block = Block(id, 0)
+        genesis_block = Block(0, 0,0)
         genesis_block.hash = genesis_block.compute_hash()
         self.chain.append(genesis_block)
         
