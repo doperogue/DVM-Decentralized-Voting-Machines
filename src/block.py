@@ -3,11 +3,11 @@ from hashlib import sha256
 
 class Block:
     # block class
-    def __init__(self,index id, previous_hash,vote,nonce=0):
+    def __init__(self,id, previous_hash,vote,nonce=0):
         #initialise block note create genisis node creation
         # thought of using index for difficulty but ?
-        #edit dont use index for difficulty and it isnt a requirement
-        #for our systema hacker could potentaly modify every index making difficulty low so stick t position in array
+        # edit dont use index for difficulty and it isnt a requirement
+        # for our systema hacker could potentaly modify every index making difficulty low so stick to position in array
         self.id = id 
         self.vote = vote
         self.previous_hash = previous_hash
@@ -100,7 +100,7 @@ chain = Blockchain()
 chain.print_blocks()
 
 #test 2 
-#for if proof of work gets calculated
+#for if proof_of_work gets calculated
 print("test 2 ")
 block1 = Block(353424, chain.last_block.hash,"Me")
 proof_block1= chain.proof_of_work(block1)
@@ -123,3 +123,4 @@ if(chain.is_valid_proof(block1, proof_block1)):
 print ("test 5")
 chain.add_block(block1,proof_block1)
 chain.print_blocks()
+
