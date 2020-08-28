@@ -1,137 +1,158 @@
 import socket
 import websockets
 import threading
+import asyncio
+import traceback
+import json
+from asyncio.exceptions import TimeoutError as ConnectionTimeoutError
 # class for host
 
-def host_IP():
     #determi the host name and ip
     # add a way to find ip and by trying 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.connect(("8.8.8.8",53))
-        my_ip = s.getsockname()[0]
-        s.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
-        return my_ip
-
-class peer():
-    def __init__( self, maxpeers, serverport, myid=None, serverhost = None ):
-        self.debug = 0
-
-        self.maxpeers = int(maxpeers)
-        self.serverport = int(serverport)
-
-        # If not supplied, the host name/IP address will be determined
-    # by attempting to connect to an Internet host like Google.
-        if serverhost: self.serverhost = serverhost
-        else: host_IP()
-
-        # If not supplied, the peer id will be composed of the host address
-        # and port number
-        if myid: self.myid = myid
-        else: self.myid = '%s:%d' % (self.serverhost, self.serverport)
-
-        # list (dictionary/hash table) of known peers
-        self.peers = {}  
-
-        # used to stop the main loop
-        self.shutdown = False  
-
-        self.handlers = {}
-        self.router = None
-    # end constructor
+    #getes ip
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    s.connect(("8.8.8.8",53))
+    MY_IP = s.getsockname()[0]
+    s.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
+    s.close()
 
 
 
 
+print(MY_IP)
+# for referencing instance of task so when reference stops instance stops python garbage collec
+CONNECTIN = set()
+# creata a super class fo all peers
+class ConnectionHandeler:
+    websocket = None
+    hostname = None
+    state = 'Disconnect'
 
-        
-    def findpeer():
-        #retuens a list of peers
-        return self.peers
+    async def send(self,message):
+        # func to send data 
+        data = json.dumps(message)
+        await self.websocket.send (data)
 
-
-    def makeserversocket( self, port, backlog=5 ):
-        #socket.AF_Inet for ipv4 and sock_stream for tcp
-        s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-        s.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
-        s.bind( ( '', port ) )
-        s.listen( backlog )
-        return s
-    def mainloop( self ):
-        s = self.makeserversocket( self.serverport )
-        s.settimeout(2)
-        self.__debug( 'Server started: %s (%s:%d)'% ( self.myid, self.serverhost, self.serverport ) )
-
-        while not self.shutdown:
-            try:
-                self.__debug( 'Listening for connections...' )
-                clientsock, clientaddr = s.accept()
-                clientsock.settimeout(None)
-
-                t = threading.Thread( target = self.__handlepeer, args = [ clientsock ] )
-                t.start()
-            except KeyboardInterrupt:
-                self.shutdown = True
-                continue
-            except:
-                if self.debug:
-                    traceback.print_exc()
-                    continue
-    # end while loop
-
-        self.__debug( 'Main loop exiting' )
-        s.close()
-    # end mainloop method
-
-    def __handlepeer( self, clientsock ):
-        self.__debug( 'Connected ' + str(clientsock.getpeername()) )
-
-        host, port = clientsock.getpeername()
-        peerconn = BTPeerConnection( None, host, port, clientsock, debug=False )
-
+    async def recv(self):
+        #func to receiver data
         try:
-            msgtype, msgdata = peerconn.recvdata()
-            if msgtype: msgtype = msgtype.upper()
-            if msgtype not in self.handlers:
-                self.__debug( 'Not handled: %s: %s' % (msgtype, msgdata) )
-            else:
-                self.__debug( 'Handling peer msg: %s: %s' % (msgtype, msgdata) )
-                self.handlers[ msgtype ]( peerconn, msgdata )
-        except KeyboardInterrupt:
-            raise
+            message = await self.websocket.recv()  
+            data = json.loads(message)
+            return data
         except:
-            if self.debug:
-                traceback.print_exc()
+            traceback.print_exc() 
 
-        self.__debug( 'Disconnecting ' + str(clientsock.getpeername()) )
-        peerconn.close()
-    # end handlepeer method 
+    
 
-    def sendtopeer( self, peerid, msgtype, msgdata, waitreply=True ):
-        if self.router:
-            nextpid, host, port = self.router( peerid )
-        if not self.router or not nextpid:
-            self.__debug( 'Unable to route %s to %s' % (msgtype, peerid) )
-            return None
-        return self.connectandsend( host, port, msgtype, msgdata, pid=nextpid,waitreply=waitreply )
+    async def welcome(self) -> bool:
+        #initial message is a declaration od a peer and seed important info to set up conn
+        greeting = await self.recv()
 
-    # end sendtopeer method
+        if 'hostname' not in greeting:
+            return False
+        #to prevent hackers dont accept insanley large values
+        if len(greeting['hostname']) > 1024;
+            return False
 
 
-# test 1
-# test if i get ip
+        self.hostname = greeting['hostname']
+# challenge peer to confirm legitamacy
+        challenge = {'challenge':'548thfweghwhruefewrewr'}
 
-print(host_IP())
+        await self.send(challenge)
+
+        password = await self.recv()
+
+#todo add actual password
+        if 'password' not in password:
+            return False
+        if len(password['password']) > 1024:
+            return False
+        if password['password'] == 'password':
+            self.state ='Connected'
+            #creates listener which is all ways present and ehn con is closed if it is deinstanced task will dissaper
+            asyncio.get_event_loop().create_task(self.listener())
+            return True
+
+        return False
 
 
-# propaget blocks
-#create random overlay
+
+    async def listener(self):
+        # listens for msg is instanciated and cn be deinstanciated
+        try:
+            async for message in self.websocket:
+                print(message)
+        except websockets.exceptions.ConnectionClosed:
+            print(f"Connection closed drom {self.hostname}")
+ 
+    async def close(self):
+        try:
+            self.websocket.close()
+        except:
+            traceback.print_exc()
+
+class ServerHandeler(ConnectionHandelern):
+    def __init__(self, websocket):
+        self.websocket = websocket
+    
+
+    
+async def port_scan():
+    #scans the local ips find any possible ip which connects to our port
+    #only for testing
+    # note port scaning is illegel make surr on private network 
+    if not MY_IP[:3] == '192' and not MY_IP[:3]=='10.'and not MY_IP[:3] =='172':
+        print('This is not a private network! Shutting DoWn')
+        exit()
+    ip_range =MY_IP.split('.')
+    ip_range.pop()
+    ip_range = '.'.join(ip_range)
+    print(ip_range)
+
+    #scan every ip in local range try connect
+    i =101
+    while i <255:
+        i += 1 
+        target_ip =f"{ip_range}.{i}"
+        print(target_ip)
+        uri =f"ws://{target_ip}:1111"
+        try:
+            connection = await asyncio.wait_for(websockets.connect(uri),timeout=5) 
+            await connection.send('hello')
+            async for message in connection:
+                print(message)
+        except ConnectionRefusedError:
+            print("server connection refused")
+            pass
+        except ConnectionError:
+            pass
+        except ConnectionTimeoutError:
+            print(f"timeout:{target_ip}")
+            pass
+        except TimeoutError:
+            pass
+        except websockets.exceptions.ConnectionClosed:
+            pass
+        except:
+            traceback.print_exc()
 
 
-#func to query chain 
 
-# create seeder nodes 
-#and do
-# dns look up to get peer list
+async def register_client(websocket,_):
+    async for message in websocket:
+        print(message)
+        await websocket.send("hello yourself")
 
 
-# form random outgoing and 
+if __name__ == "__main__":
+    start_server = websockets.serve(register_client,MY_IP,1111)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+
+
+
+
+
+
+
