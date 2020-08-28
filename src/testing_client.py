@@ -7,5 +7,7 @@ async def client_things():
 
 if __name__ == '__main__':
 	P2P.HELLO_MY_NAME_IS = 'client'
-	asyncio.get_event_loop().run_until_complete(client_things())
+	asyncio.get_event_loop().create_task(client_things())
+	asyncio.get_event_loop().create_task(P2P.status_update())
 	asyncio.get_event_loop().run_forever()
+

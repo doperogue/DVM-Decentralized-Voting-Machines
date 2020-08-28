@@ -6,6 +6,9 @@ import traceback
 import json
 from asyncio.exceptions import TimeoutError as ConnectionTimeoutError
 # class for host
+#to do change HELLO_MY_NAME_IS to IP address
+#TODO make routing
+#find peer adress by adding adress to site when acessed and share to peers 
 HELLO_MY_NAME_IS ='server'
     #determi the host name and ip
     # add a way to find ip and by trying 
@@ -21,7 +24,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
 
 print(MY_IP)
 # for referencing instance of task so when reference stops instance stops python garbage collec
-CONNECTINS= set()
+CONNECTIONS= set()
 # creata a super class fo all peers
 class ConnectionHandeler:
     websocket = None
@@ -106,7 +109,7 @@ class ConnectionHandeler:
         await self.send(challenge)
 
         password = await self.recv()
-        print(password)
+        
 #todo add actual password
         if 'password' not in password:
             return False
@@ -141,8 +144,9 @@ class ConnectionHandeler:
  
     async def close(self): 
         try:
-            self.state='disconnected'
+            
             await self.websocket.close()
+            self.state='disconnected'
         except:
             traceback.print_exc()
 
@@ -178,7 +182,7 @@ async def port_scan():
         connection = ClientHandeler(uri)
         await connection.login()
         if connection.state == 'Connected':
-            CONNECTINS.add(connection)
+            CONNECTIONS.add(connection)
             asyncio.get_event_loop().create_task(connection.listener())
 
         await asyncio.sleep(0)
@@ -186,21 +190,36 @@ async def port_scan():
 
 async def register_client(websocket,_):
     connection = ServerHandeler(websocket)
-    if await connection.welcome():
+    done = False
+    while True:
+        if not done:
+            if await connection.welcome():
         # the connec tion will persit in memory 
-        CONNECTINS.add(connection)
+                CONNECTIONS.add(connection)
+                done =True
+
+        await asyncio.sleep(0)
+
 async def unregister(connection):
     await connection.close()
     try:
-        CONNECTINS.remove(connection)
+        CONNECTIONS.remove(connection)
     except:
         traceback.print_exc()
 
+async def status_update():
+    while True:
+        print(f'updating status...{len(CONNECTIONS)}')
+        for connection in CONNECTIONS:
+            if connection.state == "Connected":
+                await connection.send({'hostname':HELLO_MY_NAME_IS,'connections':len(CONNECTIONS)})
 
+        await asyncio.sleep(10)
 
 if __name__ == "__main__":
     start_server = websockets.serve(register_client,MY_IP,1111)
     asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().create_task(status_update())
     asyncio.get_event_loop().run_forever()
 
 
