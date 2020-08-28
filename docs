@@ -1,0 +1,19 @@
+#working
+
+Each vote creates a block with a unique id .note id is different from the hash of a block
+there are no duplicate id possible in the chain this preventes voters from spamng votes
+
+the block .py file holds the block class and the block chin class
+this covers pretty much anything unique from other block chain programs .
+for proof of work we use the tradiotional method i.e no of '0' starting the hash increases as difficulty increment by one for each block 
+though we may or may not need to change the difficuly curve. considering the population tunout fot the voting so it does not mak it yoo easy o calculate nor too difficult 
+
+
+
+#vikas dont add this till i finish making sure it works
+
+will update later
+
+p2p network 
+
+
