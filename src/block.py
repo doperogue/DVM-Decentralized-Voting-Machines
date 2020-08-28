@@ -42,16 +42,17 @@ class Block:
 class Blockchain():
     """blockchain class"""
     def __init__(self):
-        self.chain = []
+        self.chain = {}
         self.create_genesis_block()
     def create_genesis_block(self):
         genesis_block = Block(0, 0,0)
         genesis_block.hash = genesis_block.compute_hash()
-        self.chain.append(genesis_block)
+        self.chain.update({genesis_block.id:genesis_block})
         
     @property
     def last_block(self):
-        return self.chain[-1]
+        
+        return list(self.chain.values())[-1]
 
 
     difficulty =2
@@ -76,7 +77,7 @@ class Blockchain():
         if not self.is_valid_proof(block, proof):
             return False
         block.hash = proof
-        self.chain.append(block)
+        self.chain.update({block.id:block})
         return True
     #in p2p network should i instead of verifying this vay verify by comparison to other nodes?
     def is_valid_proof(self, block, block_hash):
@@ -85,7 +86,7 @@ class Blockchain():
 
     #test func to print blocks
     def print_blocks(self):
-        for blocks in self.chain:
+        for id,blocks in self.chain.items():
             print("hash: "+str(blocks.hash))
             print("id:"+ str(blocks.id))
             print("prev_hash:"+ str(blocks.previous_hash))
