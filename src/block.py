@@ -20,10 +20,6 @@ class Block:
         print("prev_hash:"+ str(self.previous_hash))
         print("vote"+ str(self.vote)) 
         print("nonce: "+str(self.nonce))
-        
-
-
-
 
     def compute_hash(self):
         # re work instead of hash check for id in stopping revoting should still work and less complexity
@@ -44,6 +40,7 @@ class Blockchain():
     def __init__(self):
         self.chain = {}
         self.create_genesis_block()
+        self.difficulty =2
     def create_genesis_block(self):
         genesis_block = Block(0, 0,0)
         genesis_block.hash = genesis_block.compute_hash()
@@ -55,14 +52,14 @@ class Blockchain():
         return list(self.chain.values())[-1]
 
 
-    difficulty =2
+    
 
     def proof_of_work(self, block):
         # the one who creates the block will have to find the right nounce value for each difficulty 
         #and complexity increases as dificulty increases
         block.nonce=0
         computed_hash = block.compute_hash()
-        while not computed_hash.startswith('0' * Blockchain.difficulty):
+        while not computed_hash.startswith('0' * self.difficulty):
             block.nonce += 1
             computed_hash = block.compute_hash()
             
@@ -71,17 +68,24 @@ class Blockchain():
     def add_block(self, block, proof):
         #block is added in each node in p2p with proof provied by initial block creatoror miner and checked if it is valid
         #if so hash is updated with proff ie starting 0000bits and  stored
+        # check duplicate 
+        if self.chain.get(block.id):
+            print("already voted")
+            
+            return False
         previous_hash = self.last_block.hash
+
         if previous_hash != block.previous_hash:
             return False
         if not self.is_valid_proof(block, proof):
             return False
         block.hash = proof
         self.chain.update({block.id:block})
+        self.difficulty+=1
         return True
     #in p2p network should i instead of verifying this vay verify by comparison to other nodes?
     def is_valid_proof(self, block, block_hash):
-        return (block_hash.startswith('0' * Blockchain.difficulty) and
+        return (block_hash.startswith('0' * self.difficulty) and
                 block_hash == block.compute_hash())
 
     #test func to print blocks
@@ -124,4 +128,5 @@ if(chain.is_valid_proof(block1, proof_block1)):
 print ("test 5")
 chain.add_block(block1,proof_block1)
 chain.print_blocks()
+chain.add_block(block1,proof_block1)
 

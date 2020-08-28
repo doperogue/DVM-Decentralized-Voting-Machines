@@ -12,8 +12,13 @@ class peer():
 		else: self.__initserverhost() 
 
 		#list of known peers 
-		self.peers={}
-		
+		self.peers = {}
+		#use to shut down the peer thread
+		self.shutdown = False
+		self.router = None
+		self.handeler = None
+
+
 
 
 	def __initserverhost()
@@ -23,8 +28,14 @@ class peer():
 		#retuens a lis of peers
 		return self.peers
 
-	#use to shut down the peer thread
-	self.shutdown = Falsee
+	
+	def makeserversocket( self, port, backlog=5 ):
+		s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+		s.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
+		s.bind( ( '', port ) )
+		s.listen( backlog )
+		return s
+	
 
 # propaget blocks
 #create random overlay
@@ -35,8 +46,6 @@ class peer():
 # create seeder nodes 
 #and do
 # dns look up to get peer list
-def startp2p():
-	#starts the functioning call when submit is pressed
 
 
 # form random outgoing and 
