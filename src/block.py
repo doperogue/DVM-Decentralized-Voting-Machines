@@ -1,6 +1,7 @@
 import json
 from hashlib import sha256
 import os
+chain_path = '../data/chain_data.json'
 
 class Block:
     # block class
@@ -37,6 +38,7 @@ class Block:
 #as id for quick look up and for duplicates in revoting
 
 class Blockchain():
+    
     """blockchain class"""
     def __init__(self):
         self.chain = {}
@@ -47,7 +49,7 @@ class Blockchain():
         genesis_block.hash = genesis_block.compute_hash()
         self.chain.update({genesis_block.id:genesis_block})
         try:
-            outfile =open('../data/chain_data.json', 'w')
+            outfile =open(chain_path, 'w')
             data = genesis_block.__dict__
             data={genesis_block.id:data}
             print(json.dumps(data,indent=6))
@@ -63,6 +65,23 @@ class Blockchain():
         return list(self.chain.values())[-1]
 
 
+    def create_json(self,block,file_path):
+        try:
+            block_data = self.chain.get(block.id).__dict__
+            outfile = open(file_path, "r+")
+            new_block_data = json.load(outfile)
+            new_block_data = ({block.id:block_data})
+            outfile.write(json.dumps(new_block_data,indent=6,sort_keys=True))
+            outfile.close()
+        except json.decoder.JSONDecodeError:
+            print('invalid ')
+            pass
+        except FileNotFoundError:
+            #TODO add a request from peer for chain_data file
+            pass
+
+            
+
     
 
     def proof_of_work(self, block):
@@ -75,7 +94,11 @@ class Blockchain():
             computed_hash = block.compute_hash()
         #need a json to send to others
         data = block.__dict__
-        block_json=json.dumps(data,indent=6)   
+        block_json=json.dumps(data,indent=6,sort_keys=6)
+    
+
+
+
         
         return computed_hash
     def add_block(self, block, proof):
@@ -97,16 +120,8 @@ class Blockchain():
         self.difficulty+=1
 
         #add to 
-        block_data = self.chain.get(block.id).__dict__
-        try:
-            outfile = open("../data/chain_data.json", "r+")
-            new_block_data = json.load(outfile)
-            new_block_data = ({block.id:block_data})
-            outfile.write(json.dumps(new_block_data,indent=6,sort_keys=True))
-
-        except json.decoder.JSONDecodeError:
-            print('invalid ')
-            pass
+        
+        self.create_json(block,chain_path)
             
         return True
     #in p2p network should i instead of verifying this vay verify by comparison to other nodes?
