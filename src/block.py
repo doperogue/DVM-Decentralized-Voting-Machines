@@ -1,5 +1,6 @@
 import json
 from hashlib import sha256
+import os
 
 class Block:
     # block class
@@ -45,6 +46,16 @@ class Blockchain():
         genesis_block = Block(0, 0,0)
         genesis_block.hash = genesis_block.compute_hash()
         self.chain.update({genesis_block.id:genesis_block})
+        try:
+            outfile =open('../data/chain_data.json', 'w')
+            data = genesis_block.__dict__
+            data={genesis_block.id:data}
+            print(json.dumps(data,indent=6))
+            outfile.write(json.dumps(data,indent=6,sort_keys=True))
+            outfile.close()
+        except FileNotFoundError:
+            print('file already exist')
+            pass
         
     @property
     def last_block(self):
@@ -62,7 +73,9 @@ class Blockchain():
         while not computed_hash.startswith('0' * self.difficulty):
             block.nonce += 1
             computed_hash = block.compute_hash()
-            
+        #need a json to send to others
+        data = block.__dict__
+        block_json=json.dumps(data,indent=6)   
         
         return computed_hash
     def add_block(self, block, proof):
@@ -82,6 +95,19 @@ class Blockchain():
         block.hash = proof
         self.chain.update({block.id:block})
         self.difficulty+=1
+
+        #add to 
+        block_data = self.chain.get(block.id).__dict__
+        try:
+            outfile = open("../data/chain_data.json", "r+")
+            new_block_data = json.load(outfile)
+            new_block_data = ({block.id:block_data})
+            outfile.write(json.dumps(new_block_data,indent=6,sort_keys=True))
+
+        except json.decoder.JSONDecodeError:
+            print('invalid ')
+            pass
+            
         return True
     #in p2p network should i instead of verifying this vay verify by comparison to other nodes?
     def is_valid_proof(self, block, block_hash):

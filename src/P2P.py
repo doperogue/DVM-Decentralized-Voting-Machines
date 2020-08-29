@@ -133,7 +133,23 @@ class ConnectionHandeler:
         # listens for msg is instanciated and cn be deinstanciated
         try:
             async for message in self.websocket:
-                print(message)
+                data = json.loads(message)
+                op_type = data.get('op_type')
+
+                if op_type == 'status':
+                    # get list of connections from status msg and 
+                    #check to see if any are neighbouts we are not connected to
+                    #check shares to see if we are looking 
+                    #for changes to files and cmp those files against our own
+                    print(f'{self.hostname} Status:\n {data["connections"]}\n {data["shares"]}')
+                if op_type =='request':
+                    print(f"{self.hostname} Requect Files:{data['filename']}")
+                    #prep all the file details that the recipient needs
+                    #send the file
+
+                if op_type =='sending':
+                    print(f"{self.hostname} confirms sending file {data['filename']}")
+                    #take all the details fo the file prepare and receive it
         except websockets.exceptions.ConnectionClosed:
 
             print(f"Connection closed drom {self.hostname}")
@@ -207,14 +223,29 @@ async def unregister(connection):
     except:
         traceback.print_exc()
 
+
 async def status_update():
     while True:
         print(f'updating status...{len(CONNECTIONS)}')
+
+        connection_list =[]
+        for connection in CONNECTIONS:
+            connection_list.append({'hostname':connection.hostname,
+                                    'uri':connection.uri})
+
+
+        share_list = []
+        for  in json.block.json
+
+
         for connection in CONNECTIONS:
             if connection.state == "Connected":
-                await connection.send({'hostname':HELLO_MY_NAME_IS,'connections':len(CONNECTIONS)})
+                await connection.send({'op_type':'status',
+                                        'hostname':HELLO_MY_NAME_IS,
+                                        'connections':len(CONNECTIONS)})
 
         await asyncio.sleep(10)
+
 
 if __name__ == "__main__":
     start_server = websockets.serve(register_client,MY_IP,1111)
